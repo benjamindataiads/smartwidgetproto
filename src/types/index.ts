@@ -35,10 +35,16 @@ export interface WidgetConfig {
   customCSS?: string;
 }
 
+export type UrlField = 'url' | 'domain' | 'pathname' | 'search' | 'hash';
+export type ProductField = 'title' | 'id' | 'sku' | 'type' | 'vendor' | 'price' | 'tags';
+export type CustomConditionType = 'javascript_var' | 'cookie' | 'js_condition';
+
 export interface TargetingRule {
   id: string;
   type: 'url' | 'product' | 'custom';
-  operator: 'contains' | 'equals' | 'starts_with' | 'ends_with' | 'regex' | 'not_contains';
+  field?: UrlField | ProductField | CustomConditionType;
+  fieldName?: string; // For JS variable name or cookie name
+  operator: 'contains' | 'equals' | 'starts_with' | 'ends_with' | 'regex' | 'not_contains' | 'greater_than' | 'less_than';
   value: string;
   enabled: boolean;
 }

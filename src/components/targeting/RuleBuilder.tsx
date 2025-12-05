@@ -6,7 +6,7 @@ import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import type { TargetingRule, TargetingCondition } from '@/types';
+import type { TargetingRule, TargetingCondition, UrlField, ProductField, CustomConditionType } from '@/types';
 
 interface RuleBuilderProps {
   conditions: TargetingCondition[];
@@ -14,7 +14,35 @@ interface RuleBuilderProps {
   ruleType: 'url' | 'product' | 'custom';
 }
 
-const operatorOptions = [
+// URL field options
+const urlFieldOptions = [
+  { value: 'url', label: 'Full URL' },
+  { value: 'domain', label: 'Domain' },
+  { value: 'pathname', label: 'Path' },
+  { value: 'search', label: 'Query String' },
+  { value: 'hash', label: 'Hash' },
+];
+
+// Product field options
+const productFieldOptions = [
+  { value: 'title', label: 'Product Title' },
+  { value: 'id', label: 'Product ID' },
+  { value: 'sku', label: 'SKU' },
+  { value: 'type', label: 'Product Type' },
+  { value: 'vendor', label: 'Vendor' },
+  { value: 'price', label: 'Price' },
+  { value: 'tags', label: 'Tags' },
+];
+
+// Custom condition type options
+const customTypeOptions = [
+  { value: 'javascript_var', label: 'JavaScript Variable' },
+  { value: 'cookie', label: 'Cookie' },
+  { value: 'js_condition', label: 'JS Condition (returns true/false)' },
+];
+
+// Operator options
+const stringOperatorOptions = [
   { value: 'contains', label: 'Contains' },
   { value: 'equals', label: 'Equals' },
   { value: 'starts_with', label: 'Starts with' },
@@ -23,41 +51,141 @@ const operatorOptions = [
   { value: 'not_contains', label: 'Does not contain' },
 ];
 
-const urlPlaceholders: Record<string, string> = {
-  contains: '/product/',
-  equals: '/checkout',
-  starts_with: '/category/',
-  ends_with: '.html',
-  regex: '^/product/[0-9]+$',
-  not_contains: '/admin/',
+const numericOperatorOptions = [
+  { value: 'equals', label: 'Equals' },
+  { value: 'greater_than', label: 'Greater than' },
+  { value: 'less_than', label: 'Less than' },
+];
+
+// Placeholders
+const urlPlaceholders: Record<string, Record<string, string>> = {
+  url: {
+    contains: 'https://example.com/product/',
+    equals: 'https://example.com/checkout',
+    starts_with: 'https://example.com/',
+    ends_with: '/checkout',
+    regex: '^https://.*\\.com/product/.*$',
+    not_contains: '/admin/',
+  },
+  domain: {
+    contains: 'example',
+    equals: 'shop.example.com',
+    starts_with: 'shop.',
+    ends_with: '.com',
+    regex: '^.*\\.example\\.com$',
+    not_contains: 'staging',
+  },
+  pathname: {
+    contains: '/product/',
+    equals: '/checkout',
+    starts_with: '/category/',
+    ends_with: '.html',
+    regex: '^/product/[0-9]+$',
+    not_contains: '/admin/',
+  },
+  search: {
+    contains: 'utm_source=',
+    equals: '?ref=homepage',
+    starts_with: '?category=',
+    ends_with: '&sale=true',
+    regex: 'utm_.*=google',
+    not_contains: 'debug=',
+  },
+  hash: {
+    contains: 'section',
+    equals: '#checkout',
+    starts_with: '#product-',
+    ends_with: '-details',
+    regex: '^#tab-[0-9]+$',
+    not_contains: '#admin',
+  },
 };
 
-const productPlaceholders: Record<string, string> = {
-  contains: 'electronics',
-  equals: 'SKU12345',
-  starts_with: 'PROD-',
-  ends_with: '-XL',
-  regex: '^[A-Z]{3}-[0-9]{4}$',
-  not_contains: 'out-of-stock',
-};
-
-const customPlaceholders: Record<string, string> = {
-  contains: 'logged_in=true',
-  equals: 'utm_source=google',
-  starts_with: 'session_',
-  ends_with: '_completed',
-  regex: 'user_id=[0-9]+',
-  not_contains: 'debug=',
+const productPlaceholders: Record<string, Record<string, string>> = {
+  title: {
+    contains: 'Premium',
+    equals: 'Blue T-Shirt XL',
+    starts_with: 'Nike',
+    ends_with: 'Edition',
+    regex: '^.*Pro.*$',
+    not_contains: 'Refurbished',
+  },
+  id: {
+    contains: '123',
+    equals: 'prod_abc123',
+    starts_with: 'prod_',
+    ends_with: '_v2',
+    regex: '^prod_[a-z0-9]+$',
+    not_contains: 'test_',
+  },
+  sku: {
+    contains: 'NIKE',
+    equals: 'SKU-12345',
+    starts_with: 'SKU-',
+    ends_with: '-XL',
+    regex: '^[A-Z]{3}-[0-9]{5}$',
+    not_contains: 'DISC-',
+  },
+  type: {
+    contains: 'shirt',
+    equals: 'T-Shirt',
+    starts_with: 'Shoe',
+    ends_with: 'wear',
+    regex: '^(T-Shirt|Polo|Jacket)$',
+    not_contains: 'Accessory',
+  },
+  vendor: {
+    contains: 'Nike',
+    equals: 'Apple',
+    starts_with: 'Sam',
+    ends_with: 'Inc.',
+    regex: '^(Nike|Adidas|Puma)$',
+    not_contains: 'Generic',
+  },
+  price: {
+    equals: '99.99',
+    greater_than: '50',
+    less_than: '200',
+  },
+  tags: {
+    contains: 'sale',
+    equals: 'featured',
+    starts_with: 'category:',
+    ends_with: ':active',
+    regex: '^(sale|featured|new)$',
+    not_contains: 'hidden',
+  },
 };
 
 export function RuleBuilder({ conditions, onChange, ruleType }: RuleBuilderProps) {
-  const getPlaceholder = (operator: string) => {
-    const placeholders = {
-      url: urlPlaceholders,
-      product: productPlaceholders,
-      custom: customPlaceholders,
-    };
-    return placeholders[ruleType][operator] || 'Enter value...';
+  const getDefaultField = () => {
+    if (ruleType === 'url') return 'url';
+    if (ruleType === 'product') return 'title';
+    return 'javascript_var';
+  };
+
+  const getPlaceholder = (field: string, operator: string) => {
+    if (ruleType === 'url') {
+      return urlPlaceholders[field]?.[operator] || 'Enter value...';
+    }
+    if (ruleType === 'product') {
+      return productPlaceholders[field]?.[operator] || 'Enter value...';
+    }
+    // Custom conditions
+    if (field === 'js_condition') {
+      return 'window.isLoggedIn === true';
+    }
+    return 'Enter value...';
+  };
+
+  const getOperatorOptions = (field: string) => {
+    if (field === 'price') {
+      return numericOperatorOptions;
+    }
+    if (field === 'js_condition') {
+      return [{ value: 'equals', label: 'Returns' }];
+    }
+    return stringOperatorOptions;
   };
 
   const addCondition = () => {
@@ -68,6 +196,7 @@ export function RuleBuilder({ conditions, onChange, ruleType }: RuleBuilderProps
         {
           id: `rule-${Date.now()}`,
           type: ruleType,
+          field: getDefaultField(),
           operator: 'contains',
           value: '',
           enabled: true,
@@ -81,6 +210,7 @@ export function RuleBuilder({ conditions, onChange, ruleType }: RuleBuilderProps
     const newRule: TargetingRule = {
       id: `rule-${Date.now()}`,
       type: ruleType,
+      field: getDefaultField(),
       operator: 'contains',
       value: '',
       enabled: true,
@@ -180,73 +310,197 @@ export function RuleBuilder({ conditions, onChange, ruleType }: RuleBuilderProps
                   layout
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-3"
+                  className="space-y-2"
                 >
-                  {/* Logic Connector */}
-                  {ruleIndex > 0 && (
-                    <div className="flex-shrink-0">
-                      <select
-                        value={condition.logic}
-                        onChange={(e) =>
-                          updateConditionLogic(condition.id, e.target.value as 'and' | 'or')
-                        }
-                        className="px-2 py-1 rounded-lg border border-slate-200 text-xs font-medium text-brand-600 bg-brand-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  <div className="flex items-center gap-2">
+                    {/* Logic Connector */}
+                    {ruleIndex > 0 && (
+                      <div className="flex-shrink-0 w-14">
+                        <select
+                          value={condition.logic}
+                          onChange={(e) =>
+                            updateConditionLogic(condition.id, e.target.value as 'and' | 'or')
+                          }
+                          className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs font-medium text-brand-600 bg-brand-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                        >
+                          <option value="and">AND</option>
+                          <option value="or">OR</option>
+                        </select>
+                      </div>
+                    )}
+                    {ruleIndex === 0 && (
+                      <div className="w-14 flex-shrink-0 text-center">
+                        <span className="text-xs font-medium text-slate-400">IF</span>
+                      </div>
+                    )}
+
+                    {/* URL Conditions */}
+                    {ruleType === 'url' && (
+                      <>
+                        <div className="w-32 flex-shrink-0">
+                          <Select
+                            value={rule.field || 'url'}
+                            onChange={(e) =>
+                              updateRule(condition.id, rule.id, {
+                                field: e.target.value as UrlField,
+                              })
+                            }
+                            options={urlFieldOptions}
+                          />
+                        </div>
+                        <div className="w-36 flex-shrink-0">
+                          <Select
+                            value={rule.operator}
+                            onChange={(e) =>
+                              updateRule(condition.id, rule.id, {
+                                operator: e.target.value as TargetingRule['operator'],
+                              })
+                            }
+                            options={getOperatorOptions(rule.field || 'url')}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <Input
+                            value={rule.value}
+                            onChange={(e) =>
+                              updateRule(condition.id, rule.id, { value: e.target.value })
+                            }
+                            placeholder={getPlaceholder(rule.field || 'url', rule.operator)}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Product Conditions */}
+                    {ruleType === 'product' && (
+                      <>
+                        <div className="w-36 flex-shrink-0">
+                          <Select
+                            value={rule.field || 'title'}
+                            onChange={(e) =>
+                              updateRule(condition.id, rule.id, {
+                                field: e.target.value as ProductField,
+                                operator: e.target.value === 'price' ? 'equals' : rule.operator,
+                              })
+                            }
+                            options={productFieldOptions}
+                          />
+                        </div>
+                        <div className="w-36 flex-shrink-0">
+                          <Select
+                            value={rule.operator}
+                            onChange={(e) =>
+                              updateRule(condition.id, rule.id, {
+                                operator: e.target.value as TargetingRule['operator'],
+                              })
+                            }
+                            options={getOperatorOptions(rule.field || 'title')}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <Input
+                            value={rule.value}
+                            onChange={(e) =>
+                              updateRule(condition.id, rule.id, { value: e.target.value })
+                            }
+                            placeholder={getPlaceholder(rule.field || 'title', rule.operator)}
+                            type={rule.field === 'price' ? 'number' : 'text'}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Custom Conditions */}
+                    {ruleType === 'custom' && (
+                      <>
+                        <div className="w-44 flex-shrink-0">
+                          <Select
+                            value={rule.field || 'javascript_var'}
+                            onChange={(e) =>
+                              updateRule(condition.id, rule.id, {
+                                field: e.target.value as CustomConditionType,
+                              })
+                            }
+                            options={customTypeOptions}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Toggle + Delete */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rule.enabled}
+                          onChange={(e) =>
+                            updateRule(condition.id, rule.id, { enabled: e.target.checked })
+                          }
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500" />
+                      </label>
+                      <button
+                        onClick={() => deleteRule(condition.id, rule.id)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                       >
-                        <option value="and">AND</option>
-                        <option value="or">OR</option>
-                      </select>
-                    </div>
-                  )}
-                  {ruleIndex === 0 && (
-                    <div className="w-[52px] flex-shrink-0 text-center">
-                      <span className="text-xs font-medium text-slate-400">IF</span>
-                    </div>
-                  )}
-
-                  {/* Rule Fields */}
-                  <div className="flex-1 flex items-center gap-2">
-                    <div className="w-40">
-                      <Select
-                        value={rule.operator}
-                        onChange={(e) =>
-                          updateRule(condition.id, rule.id, {
-                            operator: e.target.value as TargetingRule['operator'],
-                          })
-                        }
-                        options={operatorOptions}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <Input
-                        value={rule.value}
-                        onChange={(e) =>
-                          updateRule(condition.id, rule.id, { value: e.target.value })
-                        }
-                        placeholder={getPlaceholder(rule.operator)}
-                      />
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Toggle + Delete */}
-                  <div className="flex items-center gap-1">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={rule.enabled}
-                        onChange={(e) =>
-                          updateRule(condition.id, rule.id, { enabled: e.target.checked })
-                        }
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500" />
-                    </label>
-                    <button
-                      onClick={() => deleteRule(condition.id, rule.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {/* Custom condition extra fields - second row */}
+                  {ruleType === 'custom' && rule.field !== 'js_condition' && (
+                    <div className="flex items-center gap-2 ml-14">
+                      <div className="w-44 flex-shrink-0">
+                        <Input
+                          value={rule.fieldName || ''}
+                          onChange={(e) =>
+                            updateRule(condition.id, rule.id, { fieldName: e.target.value })
+                          }
+                          placeholder={rule.field === 'cookie' ? 'Cookie name' : 'Variable name (e.g. window.userId)'}
+                        />
+                      </div>
+                      <div className="w-36 flex-shrink-0">
+                        <Select
+                          value={rule.operator}
+                          onChange={(e) =>
+                            updateRule(condition.id, rule.id, {
+                              operator: e.target.value as TargetingRule['operator'],
+                            })
+                          }
+                          options={stringOperatorOptions}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          value={rule.value}
+                          onChange={(e) =>
+                            updateRule(condition.id, rule.id, { value: e.target.value })
+                          }
+                          placeholder={rule.field === 'cookie' ? 'Cookie value' : 'Variable value'}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* JS Condition - single input */}
+                  {ruleType === 'custom' && rule.field === 'js_condition' && (
+                    <div className="flex items-center gap-2 ml-14">
+                      <div className="flex-1">
+                        <Input
+                          value={rule.value}
+                          onChange={(e) =>
+                            updateRule(condition.id, rule.id, { value: e.target.value })
+                          }
+                          placeholder="window.isLoggedIn === true && window.cartTotal > 100"
+                        />
+                      </div>
+                      <span className="text-xs text-slate-500 flex-shrink-0">
+                        must return <code className="bg-slate-100 px-1 rounded">true</code>
+                      </span>
+                    </div>
+                  )}
                 </motion.div>
               ))}
 
@@ -274,4 +528,3 @@ export function RuleBuilder({ conditions, onChange, ruleType }: RuleBuilderProps
     </div>
   );
 }
-
