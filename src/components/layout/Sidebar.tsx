@@ -6,11 +6,9 @@ import { motion } from 'framer-motion';
 import {
   LayoutGrid,
   Layers,
-  Settings,
   Palette,
   User,
   Sparkles,
-  ChevronRight,
 } from 'lucide-react';
 
 interface NavItem {
@@ -32,18 +30,10 @@ const mainNavItems: NavItem[] = [
     href: '/my-widgets',
     icon: Layers,
   },
-];
-
-const secondaryNavItems: NavItem[] = [
   {
     label: 'Global Style',
     href: '/style',
     icon: Palette,
-  },
-  {
-    label: 'Settings',
-    href: '/settings',
-    icon: Settings,
   },
 ];
 
@@ -125,40 +115,6 @@ export function Sidebar() {
           })}
         </div>
 
-        {/* Divider */}
-        <div className="my-6 mx-3 h-px bg-slate-200" />
-
-        {/* Secondary Navigation */}
-        <div className="space-y-1">
-          <p className="px-3 mb-2 text-xs font-medium text-slate-400 uppercase tracking-wider">
-            Configuration
-          </p>
-          {secondaryNavItems.map((item) => {
-            const active = isActive(item.href);
-            const Icon = item.icon;
-            
-            return (
-              <Link key={item.href} href={item.href}>
-                <motion.div
-                  className={`
-                    group relative flex items-center gap-3 px-3 py-2.5 rounded-lg
-                    transition-all duration-200 cursor-pointer
-                    ${active 
-                      ? 'bg-slate-100 text-slate-900' 
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                    }
-                  `}
-                  whileHover={{ x: 2 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium text-sm">{item.label}</span>
-                  <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                </motion.div>
-              </Link>
-            );
-          })}
-        </div>
       </nav>
 
       {/* User Section */}
