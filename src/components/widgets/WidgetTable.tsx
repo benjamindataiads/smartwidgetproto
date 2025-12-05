@@ -234,9 +234,15 @@ function WidgetRow({ widget, index }: WidgetRowProps) {
             {getCategoryEmoji(widget.category)}
           </div>
           <div>
-            <h3 className="font-medium text-slate-900 group-hover:text-brand-600 transition-colors">
+            <button
+              onClick={() => {
+                setCurrentWidget(widget);
+                router.push(`/widget/${widget.id}`);
+              }}
+              className="font-medium text-slate-900 hover:text-brand-600 transition-colors text-left"
+            >
               {widget.name}
-            </h3>
+            </button>
             <p className="text-sm text-slate-500">
               Updated {new Date(widget.updatedAt).toLocaleDateString()}
             </p>
